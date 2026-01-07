@@ -1,9 +1,12 @@
 #include "NeuralEngine.h"
 
+// WIFI To Store DB 
+
 void setup() {
   Serial.begin(115200);
   delay(2000);
-  // Primitive Data Types 
+
+// Primitive Data Types 
 //   Serial.println("Serial OK!");
 
 //   char name[20];
@@ -52,15 +55,19 @@ void setup() {
     char c;
   }; 
 
-  struct node n1;
+
+
+
+
+struct node n1;
   n1.a=20;
   n1.b=32.3;
   n1.c='A';
- cl("%d,%f,%c",n1.a,n1.b,n1.c);
+cl("%d,%f,%c",n1.a,n1.b,n1.c);
 
  char buf[32];
 
- clearEEP(); // ← reset memory first
+ clearEEP(); // reset memory first
 
   set_item("name", "Kishore");
   set_item("city", "Salem");
@@ -71,6 +78,7 @@ void setup() {
   char* c = get_item_simple("city");
   cl(c);
 }
+
 void loop(){
   // Serial.println(stc("hiii"));
   

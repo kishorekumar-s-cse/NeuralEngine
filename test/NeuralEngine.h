@@ -4,26 +4,28 @@
 #include <ctype.h>
 #include <string.h>
 #include <Arduino.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
 
-char* get_item(const char* input)
-{
-    if (input == 0)
-        return 0;
+// char* get_item(const char* input)
+// {
+//     if (input == 0)
+//         return 0;
 
-    int len = 0;
-    while (input[len] != '\0')
-        len++;
+//     int len = 0;
+//     while (input[len] != '\0')
+//         len++;
 
-    char* buffer = (char*)malloc(len + 1);
-    if (buffer == 0)
-        return 0;
+//     char* buffer = (char*)malloc(len + 1);
+//     if (buffer == 0)
+//         return 0;
 
-    for (int i = 0; i < len; i++)
-        buffer[i] = input[i];
+//     for (int i = 0; i < len; i++)
+//         buffer[i] = input[i];
 
-    buffer[len] = '\0';
-    return buffer;
-}
+//     buffer[len] = '\0';
+//     return buffer;
+// }
 
 
 // void cl(const char *fmt, ...) {
@@ -33,17 +35,56 @@ char* get_item(const char* input)
 //     va_end(args);
 //     printf("\n");         // new line like Serial.println()
 // }
+// http://10.39.67.5/cl_func/cl_func/esp32_insert.php
 
-static void cl(const char *fmt, ...) {
-    char buffer[128];
 
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(buffer, sizeof(buffer), fmt, args);
-    va_end(args);
+// WIFI Config
+static const char* CL_SSID     = "hello";
+static const char* CL_PASSWORD = "hello123";
+static const char* CL_SERVER  = "http://10.39.67.5/cl_func/cl_func/esp32_insert.php";
 
-    Serial.println(buffer); // always visible
+
+static bool _cl_wifi_connected = false;
+
+static void _cl_wifi_init() {
+    if (_cl_wifi_connected) return;
+
+    WiFi.begin(CL_SSID, CL_PASSWORD);
+
+    Serial.print("Connecting to WiFi");
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+    }
+
+    Serial.println("\nConnected!");
+    _cl_wifi_connected = true;
 }
+
+
+template<typename... Args>
+void cl(Args... args) {
+    _cl_wifi_init();   // ensure WiFi is connected
+
+    String finalMsg = "";
+
+    (finalMsg += ... += (String(args) + " "));
+
+    finalMsg.trim();
+
+    Serial.println(finalMsg);
+    if (WiFi.status() == WL_CONNECTED) {
+        HTTPClient http;
+        http.begin(CL_SERVER);
+        http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+        String postData = "message=" + finalMsg;
+        http.POST(postData);
+
+        http.end();
+    }
+}
+
 
 // --------- CLEAR SERIAL BUFFER ---------
 static void clearSerialBuffer(void) {
