@@ -7,34 +7,6 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
-// char* get_item(const char* input)
-// {
-//     if (input == 0)
-//         return 0;
-
-//     int len = 0;
-//     while (input[len] != '\0')
-//         len++;
-
-//     char* buffer = (char*)malloc(len + 1);
-//     if (buffer == 0)
-//         return 0;
-
-//     for (int i = 0; i < len; i++)
-//         buffer[i] = input[i];
-
-//     buffer[len] = '\0';
-//     return buffer;
-// }
-
-
-// void cl(const char *fmt, ...) {
-//     va_list args;
-//     va_start(args, fmt);
-//     vprintf(fmt, args);   // print to UART/stdout
-//     va_end(args);
-//     printf("\n");         // new line like Serial.println()
-// }
 // http://10.39.67.5/cl_func/cl_func/esp32_insert.php
 
 
