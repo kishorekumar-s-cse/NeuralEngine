@@ -1,0 +1,14 @@
+NeuralEngine	KEYWORD1
+cl	KEYWORD1
+cl_impl	KEYWORD2
+getESP_ID	KEYWORD2
+
+set_item	KEYWORD2
+get_item	KEYWORD2
+clearEEP	KEYWORD2
+
+readInt	KEYWORD2
+readFloat	KEYWORD2
+readDouble	KEYWORD2
+readString	KEYWORD2
+readChar	KEYWORD2
