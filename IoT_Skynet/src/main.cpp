@@ -1,20 +1,15 @@
 #include <Arduino.h>
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
 #include <NeuralEngine.h>
 
-
 void setup() {
-Serial.begin(9600);
-delay(2000);
-set_ssid("hello");
-set_pwd("hello123");
-
-Serial.println("Hello world");
-cl("Check WiFI");
+  Serial.begin(9600);
+  delay(1000);
+  startBluetooth();
 }
-
 void loop() {
-  cl("Check WiFI");
-  delay(10000);
-  // put your main code here, to run repeatedly:
+  // main application logic here
 }
-

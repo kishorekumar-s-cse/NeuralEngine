@@ -3,12 +3,11 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
-
+#include <Preferences.h> // For EEPROM Non Volatile memory
 
 #define cl(...) cl_impl(__FILE__, __func__, __LINE__, ##__VA_ARGS__)
 
 /* ================= CORE ================= */
-String getESP_ID();
 
 
 
@@ -39,22 +38,15 @@ inline void cl_impl(
     _cl_send(file, func, line, msg);
 }
 
-/* ================= SERIAL INPUT ================= */
-void clearSerialBuffer(void);
-int readInt(void);
-void readString(char *buffer, int maxLen);
-char readChar(void);
-float readFloat(void);
-double readDouble(void);
-
 // SSID AND PWD
 
 void set_ssid(const char* ssid_ptr);
-void set_pwd(const char* pwd_ptr);
+void set_pwd(const char* pwd_ptr); 
+void deleteAllNodes(); 
+void CLLdisplay();   
 
-/* ================= EEPROM ================= */
-void set_item(const char *key, const char *value);
-char* get_item(const char *key);
-void clearEEP(void);
+// Bluetooth BLE with WiFi
+void startBluetooth();
+
 
 #endif

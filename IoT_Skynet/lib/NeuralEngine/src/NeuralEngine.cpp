@@ -5,7 +5,11 @@
 #include <EEPROM.h>
 #include <ctype.h>
 #include <string.h>
-
+#include <Preferences.h>
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
 struct WifiNode {
     String ssid;
     String pwd;
@@ -41,10 +45,25 @@ void addSSIDNode(String ssidStr) {
     } else {
         WifiNode* temp = head;
         while (temp->next != head) {
-            temp = temp->next;
+          // Serial.printf("%s",temp->ssid);
+          temp = temp->next;
         }
         temp->next = newNode;
         newNode->next = head; 
+    }
+}
+
+void CLLdisplay(){
+if (head == nullptr) {
+        return;
+    } else {
+      WifiNode* temp=head;
+
+        while(temp->next!=head){
+          Serial.printf("%s\t",temp->ssid);
+          temp=temp->next;
+          
+        } Serial.printf("%s\t",temp->ssid);
     }
 }
 
@@ -63,6 +82,21 @@ void updatePwdNode(String pwdStr, int index) {
 }
 
 
+void deleteAllNodes() {
+    if (head == nullptr) return;
+
+    WifiNode* current = head->next;
+    WifiNode* temp;
+
+    while (current != head) {
+        temp = current;
+        current = current->next;
+        delete temp;
+    }
+
+    delete head;
+    head = nullptr;
+}
 
 
 void WiFiManagerTask(void * parameter) {
@@ -157,7 +191,7 @@ String getESP_ID() {
     return String(id);
 }
 
-/* ================= URL ENCODE ================= */
+/* URL ENCODE */
 static String _cl_encode(const String &s) {
     String out = "";
     char buf[4];
@@ -237,141 +271,54 @@ void _cl_send(
     }
 }
 
-/* ================= SERIAL UTILS ================= */
-void clearSerialBuffer(void) {
-    while (Serial.available()) Serial.read();
+// Bluetooth Integrated with WiFi BLE 
+
+#define SERVICE_UUID "12345678-1234-1234-1234-1234567890ab"
+#define CHAR_UUID    "abcd1234-ab12-cd34-ef56-abcdef123456"
+
+/* ================= BLE CALLBACK ================= */
+class CharCallbacks : public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic *c) override {
+
+    std::string rx = c->getValue();
+    const char *cstr = rx.c_str();
+
+    Serial.print("Received: ");
+    Serial.println(cstr);
+
+    deleteAllNodes();
+    set_ssid(cstr);
+    CLLdisplay();
+  }
+};
+
+/* ================= BLE INIT FUNCTION ================= */
+void startBluetooth() {
+
+  BLEDevice::init("ESP32_BLE");
+
+  BLEServer *server = BLEDevice::createServer();
+  BLEService *service = server->createService(SERVICE_UUID);
+
+  BLECharacteristic *ch = service->createCharacteristic(
+    CHAR_UUID,
+    BLECharacteristic::PROPERTY_READ |
+    BLECharacteristic::PROPERTY_WRITE
+  );
+
+  ch->setCallbacks(new CharCallbacks());
+  ch->addDescriptor(new BLE2902());
+
+  service->start();
+
+  BLEAdvertising *adv = BLEDevice::getAdvertising();
+  adv->addServiceUUID(SERVICE_UUID);
+  adv->setScanResponse(true);
+
+  BLEDevice::startAdvertising();
+  Serial.println("Bluetooth started");
 }
 
-static void readLine(char *buf, int maxLen) {
-    int i = 0;
-    while (!Serial.available());
-    while (Serial.available()) {
-        char c = Serial.read();
-        if (c == '\n' || c == '\r') break;
-        if (i < maxLen - 1) buf[i++] = c;
-    }
-    buf[i] = '\0';
-}
+//End BL
 
-int readInt(void) {
-    clearSerialBuffer();
-    char buf[16];
-    readLine(buf, sizeof(buf));
-    return atoi(buf);
-}
 
-void readString(char *buffer, int maxLen) {
-    clearSerialBuffer();
-    readLine(buffer, maxLen);
-}
-
-char readChar(void) {
-    clearSerialBuffer();
-    while (!Serial.available());
-    return Serial.read();
-}
-
-float readFloat(void) {
-    clearSerialBuffer();
-    char buf[20];
-    readLine(buf, sizeof(buf));
-    return atof(buf);
-}
-
-double readDouble(void) {
-    clearSerialBuffer();
-    char buf[32];
-    readLine(buf, sizeof(buf));
-    return atof(buf);
-}
-
-/* ================= EEPROM UTILS ================= */
-static void initEEP() {
-    static bool init = false;
-    if (!init) {
-        if (!EEPROM.begin(EEPROM_SIZE)) {
-            Serial.println("Failed to initialise EEPROM");
-            return;
-        }
-        init = true;
-    }
-}
-
-static int readLength() {
-    int len = 0;
-    for (int i = 0; i < 4; i++)
-        len |= EEPROM.read(i) << (8 * i);
-    return len;
-}
-
-static void saveLength(int length) {
-    for (int i = 0; i < 4; i++)
-        EEPROM.write(i, (length >> (8 * i)) & 0xFF);
-    EEPROM.commit();
-}
-
-void set_item(const char *key, const char *value) {
-    initEEP();
-    int len = readLength();
-    
-    // Safety check for crazy lengths (uninitialized EEPROM)
-    if (len < 0 || len > EEPROM_SIZE) len = 0;
-
-    int pos = START_ADDR + len;
-    int needed = strlen(key) + strlen(value) + 2;
-    
-    if (pos + needed >= EEPROM_SIZE) {
-        Serial.println("EEPROM Full!");
-        return;
-    }
-
-    while (*key) EEPROM.write(pos++, *key++);
-    EEPROM.write(pos++, '\0');
-
-    while (*value) EEPROM.write(pos++, *value++);
-    EEPROM.write(pos++, '\0');
-
-    saveLength(len + needed);
-}
-
-char* get_item(const char *key) {
-    static char out[64];
-    initEEP();
-
-    int len = readLength();
-    if (len < 0 || len > EEPROM_SIZE) return NULL;
-    
-    int pos = START_ADDR;
-
-    while (pos < START_ADDR + len) {
-        char temp[32];
-        int i = 0;
-
-        // Read Key
-        while (EEPROM.read(pos) != '\0' && i < 31)
-            temp[i++] = EEPROM.read(pos++);
-        temp[i] = '\0';
-        pos++; // Skip null
-
-        // Check Key match
-        if (strcmp(temp, key) == 0) {
-            i = 0;
-            // Read Value
-            while (EEPROM.read(pos) != '\0' && i < 63)
-                out[i++] = EEPROM.read(pos++);
-            out[i] = '\0';
-            return out;
-        }
-
-        // Skip Value if key didn't match
-        while (EEPROM.read(pos) != '\0') pos++;
-        pos++; // Skip null
-    }
-    return NULL;
-}
-
-void clearEEP(void) {
-    initEEP();
-    for (int i = 0; i < EEPROM_SIZE; i++) EEPROM.write(i, 0);
-    saveLength(0);
-}
